@@ -1,6 +1,4 @@
-workflow mfa_reset3
-{
-    param (
+param (
         [Parameter(Mandatory=$true)]
         [string] $User_Principal_Name,
         [Parameter(Mandatory=$true)]
@@ -151,4 +149,4 @@ else
     }
 }
 }
-}
+
