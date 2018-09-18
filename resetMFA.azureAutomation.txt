@@ -42,7 +42,7 @@ InlineScript
     $doReset = $using:Perform_MFA_Reset
     $restrictedGroups = @() #define array for restricted groups so that more than one group could be declared
     $restrictedGroups = "b54e5679-9242-436e-8946-e2ff65190c42" #members of this group cannot have their MFA methods reset
-
+    $automationCredName = "MFAReset"
     # RegEx to check if an UPN looks valid
     $UPNRegEx = "(?i)^[A-Z0-9][A-Z0-9._%+-]{0,63}@(?:[A-Z0-9]+(?:-[A-Z0-9]+)*\.)+[A-Z]{2,63}$"
     if (($UPN.Length -gt 254) -or ($UPN -notmatch $UPNRegEx))
@@ -50,8 +50,8 @@ InlineScript
         write-output "Invalid UPN: $UPN "
         return
     }
-    $myCredential = Get-AutomationPSCredential -Name 'alexpav_local@alexpavtest.onmicrosoft.com'
-    Connect-MSOLService -Credential $myCredential
+    $myCredential = Get-AutomationPSCredential -Name 
+    Connect-MSOLService -Credential $automationCredName
  
         $User = Get-MsolUser -UserPrincipalName $UPN
     
