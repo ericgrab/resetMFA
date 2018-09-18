@@ -1,0 +1,154 @@
+workflow mfa_reset3
+{
+    param (
+        [Parameter(Mandatory=$true)]
+        [string] $User_Principal_Name,
+        [Parameter(Mandatory=$true)]
+        [bool] $Perform_MFA_Reset     
+    )
+InlineScript
+{
+#restricted role definition
+#summary of roles defined as restricted. These roles can be listed by running the Get-MSOLRole cmdlet from the MSOnline PowerShell module. To add or remove role, modify the $restrictedRoleArray variable set below.
+
+#Helpdesk Administrator               729827e3-9c14-49f7-bb1b-9608f156bbb8
+#Service Support Administrator        f023fd81-a637-4b56-95fd-791ac0226033
+#Billing Administrator                b0f54661-2d74-4c50-afa3-1ec803f12efe
+#Partner Tier1 Support                4ba39ca4-527c-499a-b93d-d9b492c50246
+#Partner Tier2 Support                e00e864a-17c5-4a4b-9c06-f5b95a8d5bd8
+#Exchange Service Administrator       29232cdf-9323-42fd-ade2-1d097af3e4de
+#Lync Service Administrator           75941009-915a-4869-abe7-691bff18279e
+#User Account Administrator           fe930be7-5e62-47db-91af-98c3a49a38b1
+#Directory Writers                    9360feb5-f418-4baa-8175-e2a00bac4301
+#Company Administrator                62e90394-69f5-4237-9190-012177145e10
+#SharePoint Service Administrator     f28a1f50-f6e7-4571-818b-6a12f2af6b6c
+#Device Administrators                9f06204d-73c1-4d4c-880a-6edb90606fd8
+#Compliance Administrator             17315797-102d-40b4-93e0-432062caca18
+#Directory Synchronization Accounts   d29b2b05-8046-44ba-8758-1e26182fcf32
+#Device Managers                      2b499bcd-da44-4968-8aec-78e1674fa64d
+#Application Administrator            9b895d92-2cd3-44c7-9d02-a6ac2d5ea5c3
+#Application Developer                cf1c38e5-3621-4004-a7cb-879624dced7c
+#Security Reader                      5d6b6bb7-de71-4623-b4af-96380a352509
+#Security Administrator               194ae4cb-b126-40b2-bd5b-6091b380977d
+#Privileged Role Administrator        e8611ab8-c189-46e8-94e1-60213ab1f814
+#Intune Service Administrator         3a2c62db-5318-420d-8d74-23affee5d9d5
+#Cloud Application Administrator      158c047a-c907-4556-b7ef-446551a6b5f7
+#Customer LockBox Access Approver     5c4f9dcd-47dc-4cf7-8c9a-9e4207cbfc91
+#CRM Service Administrator            44367163-eba1-44c3-98af-f5787879f96a
+#Power BI Service Administrator       a9ea8996-122f-4c74-9520-8edcd192826c
+#Conditional Access Administrator     b1be1c3e-b65d-4f19-8427-f6fa0d97feb9
+#Information Protection Administrator 7495fdc4-34c4-4d15-a289-98788ce399fd
+
+    $restrictedRoleArray = "729827e3-9c14-49f7-bb1b-9608f156bbb8","f023fd81-a637-4b56-95fd-791ac0226033","b0f54661-2d74-4c50-afa3-1ec803f12efe","4ba39ca4-527c-499a-b93d-d9b492c50246","e00e864a-17c5-4a4b-9c06-f5b95a8d5bd8","29232cdf-9323-42fd-ade2-1d097af3e4de","75941009-915a-4869-abe7-691bff18279e","fe930be7-5e62-47db-91af-98c3a49a38b1","9360feb5-f418-4baa-8175-e2a00bac4301","62e90394-69f5-4237-9190-012177145e10","f28a1f50-f6e7-4571-818b-6a12f2af6b6c","9f06204d-73c1-4d4c-880a-6edb90606fd8","17315797-102d-40b4-93e0-432062caca18","d29b2b05-8046-44ba-8758-1e26182fcf32","2b499bcd-da44-4968-8aec-78e1674fa64d","9b895d92-2cd3-44c7-9d02-a6ac2d5ea5c3","5d6b6bb7-de71-4623-b4af-96380a352509","194ae4cb-b126-40b2-bd5b-6091b380977d","e8611ab8-c189-46e8-94e1-60213ab1f814","3a2c62db-5318-420d-8d74-23affee5d9d5","158c047a-c907-4556-b7ef-446551a6b5f7","5c4f9dcd-47dc-4cf7-8c9a-9e4207cbfc91","44367163-eba1-44c3-98af-f5787879f96a","a9ea8996-122f-4c74-9520-8edcd192826c","b1be1c3e-b65d-4f19-8427-f6fa0d97feb9","4a5d8f65-41da-4de4-8968-e035b65339cf","7495fdc4-34c4-4d15-a289-98788ce399fd"
+    $UPN = $using:User_Principal_Name
+    $doReset = $using:Perform_MFA_Reset
+    $restrictedGroups = @() #define array for restricted groups so that more than one group could be declared
+    $restrictedGroups = "b54e5679-9242-436e-8946-e2ff65190c42" #members of this group cannot have their MFA methods reset
+
+    # RegEx to check if an UPN looks valid
+    $UPNRegEx = "(?i)^[A-Z0-9][A-Z0-9._%+-]{0,63}@(?:[A-Z0-9]+(?:-[A-Z0-9]+)*\.)+[A-Z]{2,63}$"
+    if (($UPN.Length -gt 254) -or ($UPN -notmatch $UPNRegEx))
+    {
+        write-output "Invalid UPN: $UPN "
+        return
+    }
+    $myCredential = Get-AutomationPSCredential -Name 'alexpav_local@alexpavtest.onmicrosoft.com'
+    Connect-MSOLService -Credential $myCredential
+ 
+        $User = Get-MsolUser -UserPrincipalName $UPN
+    
+        if (!$User)
+        {
+        write-output "Cannot find user with UPN $UPN"
+        return
+        }
+#try to get company info FYI for users
+try
+{
+    $companyDisplayName = (Get-MsolCompanyInformation).DisplayName
+}
+catch
+{
+    $companyDisplayname = ""
+}
+write-Output "Targeting Azure Active Directory $companyDisplayName"
+Write-Output "`n"
+
+         # check if the user is in restricted role
+         $UserRoles = Get-MsolUserRole -UserPrincipalName $UPN
+         foreach ($userRole in $userRoles)
+         {
+             $roleObjID = $userRole.ObjectID
+             $roleName = $userRole.Name
+         if ($restrictedRoleArray -contains $roleObjID)
+            {
+                Write-Output "ERROR: $UPN is in the $roleName privileged role. You cannot reset or view authentication methods for users in restricted roles."
+                return
+            }
+         }
+         #check if user is a member of the restricted group
+         
+         foreach ($groupObjId in $restrictedGroups)
+         {
+             $groupMembers = Get-MsolGroupMember -GroupObjectId $groupObjId -All #get all group members
+             foreach ($member in $groupMembers)
+             {
+                if ($member.ObjectID -eq $User.ObjectID)
+                {
+                    Write-Output "ERROR: $UPN is a member of a security group restricted from MFA reset delegation. You cannot reset or view authentication methods for users in restricted groups."
+                    return
+                }
+             }
+         }
+if ($doReset)
+{
+    # Reset the strong authentication methods for the user
+    try
+    {
+        Set-MsolUser -UserPrincipalName $UPN -StrongAuthenticationMethods @()
+    }
+    catch
+    {
+        Write-Output  "Unable to reset authentication methods for $UPN"
+        return
+    }
+
+   Write-Output "SUCCESS: MFA methods were reset for user $UPN"
+}
+else
+{
+    #view only
+    try
+    {
+        $userObj = Get-MsolUser -UserPrincipalName $UPN
+        if ($userObj.StrongAuthenticationMethods -ne $null)
+        {
+            Write-Output "$UPN is registered for MFA. Authentication methods:"
+            foreach ($method in $userObj.StrongAuthenticationMethods)
+            {
+                $strOut = $method.MethodType + ":" + "IsDefault:" + $method.IsDefault
+                Write-Output $strOut
+                $strOut = $null 
+            }
+        }
+        else
+        {
+            Write-Output "MFA Methods have not been set or have been previously cleared for $UPN"
+        }
+        Write-Output "`n"
+        Write-Output "$UPN MFA registration information stored in Azure AD:"
+        $regPhoneNumber = $userObj.StrongAuthenticationUserDetails.PhoneNumber
+        $regdeviceName = $userObj.StrongAuthenticationPhoneAppDetails.DeviceName
+        $regdeviceAuthNTypes = $userObj.StrongAuthenticationPhoneAppDetails.AuthenticationType
+        write-Output "Registered Phone Number: $regPhoneNumber"
+        Write-Output "Registered Device Name: $regdeviceName"
+        Write-Output "Device AuthN Types: $regdeviceAuthNTypes" 
+    }
+    catch
+    {
+        Write-Output "Unable to get authentication methods for $UPN"
+        return
+    }
+}
+}
+}
