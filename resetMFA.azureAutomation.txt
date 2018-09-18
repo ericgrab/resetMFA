@@ -50,8 +50,8 @@ InlineScript
         write-output "Invalid UPN: $UPN "
         return
     }
-    $myCredential = Get-AutomationPSCredential -Name 
-    Connect-MSOLService -Credential $automationCredName
+    $myCredential = Get-AutomationPSCredential -Name $automationCredName
+    Connect-MSOLService -Credential $myCredential
  
         $User = Get-MsolUser -UserPrincipalName $UPN
     
